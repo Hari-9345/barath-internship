@@ -1,0 +1,393 @@
+1.
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class Task {
+  String title;
+
+  Task(this.title);
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'To-Do List App',
+      home: TodoListScreen(),
+    );
+  }
+}
+
+class TodoListScreen extends StatefulWidget {
+  @override
+  _TodoListScreenState createState() => _TodoListScreenState();
+}
+
+class _TodoListScreenState extends State<TodoListScreen> {
+  List<Task> tasks = [];
+  TextEditingController taskController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('To-Do List'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: taskController,
+              decoration: InputDecoration(
+                hintText: 'Enter a new task',
+              ),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                addTask();
+              },
+              child: Text('Add Task'),
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(tasks[index].title),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        removeTask(index);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void addTask() {
+    if (taskController.text.trim().isNotEmpty) {
+      setState(() {
+        tasks.add(Task(taskController.text));
+        taskController.text = '';
+      });
+    }
+  }
+
+  void removeTask(int index) {
+    setState(() {
+      tasks.removeAt(index);
+    });
+  }
+}
+
+2.
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class Weather {
+  final String location;
+  final String temperature;
+  final String description;
+
+  Weather({required this.location, required this.temperature, required this.description});
+
+  factory Weather.fromJson(Map<String, dynamic> json) {
+    return Weather(
+      location: json['name'],
+      temperature: json['main']['temp'].toString(),
+      description: json['weather'][0]['description'],
+    );
+  }
+}
+
+class WeatherApi {
+  final String apiKey;
+  final String apiUrl = 'https://api.openweathermap.org/data/2.5/weather';
+
+  WeatherApi({required this.apiKey});
+
+  Future<Weather> getWeather(String city) async {
+    final response = await http.get(Uri.parse('$apiUrl?q=$city&appid=$apiKey&units=metric'));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      return Weather.fromJson(data);
+    } else {
+      throw Exception('Failed to load weather data');
+    }
+  }
+}
+
+class MyApp extends StatelessWidget {
+  final WeatherApi weatherApi = WeatherApi(apiKey: 'YOUR_API_KEY');
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Weather Forecast App',
+      home: WeatherScreen(weatherApi: weatherApi),
+    );
+  }
+}
+
+class WeatherScreen extends StatefulWidget {
+  final WeatherApi weatherApi;
+
+  WeatherScreen({required this.weatherApi});
+
+  @override
+  _WeatherScreenState createState() => _WeatherScreenState();
+}
+
+class _WeatherScreenState extends State<WeatherScreen> {
+  late Future<Weather> futureWeather;
+  final TextEditingController cityController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    futureWeather = widget.weatherApi.getWeather('YOUR_DEFAULT_CITY');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Weather Forecast App'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: cityController,
+              decoration: InputDecoration(
+                labelText: 'Enter city',
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  futureWeather = widget.weatherApi.getWeather(cityController.text);
+                });
+              },
+              child: Text('Get Weather'),
+            ),
+            SizedBox(height: 20),
+            FutureBuilder<Weather>(
+              future: futureWeather,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('Location: ${snapshot.data!.location}'),
+                      Text('Temperature: ${snapshot.data!.temperature}°C'),
+                      Text('Description: ${snapshot.data!.description}'),
+                    ],
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+3.
+
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class Question {
+  final String questionText;
+  final List<String> options;
+  final int correctOptionIndex;
+
+  Question({
+    required this.questionText,
+    required this.options,
+    required this.correctOptionIndex,
+  });
+}
+
+class QuizApp extends StatefulWidget {
+  @override
+  _QuizAppState createState() => _QuizAppState();
+}
+
+class _QuizAppState extends State<QuizApp> {
+  int _currentQuestionIndex = 0;
+  List<Question> _questions = [
+    Question(
+      questionText: 'What is the capital of France?',
+      options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
+      correctOptionIndex: 2,
+    ),
+    Question(
+      questionText: 'Which planet is known as the Red Planet?',
+      options: ['Earth', 'Mars', 'Venus', 'Jupiter'],
+      correctOptionIndex: 1,
+    ),
+    Question(
+      questionText: 'What is the largest mammal?',
+      options: ['Elephant', 'Whale Shark', 'Blue Whale', 'Giraffe'],
+      correctOptionIndex: 2,
+    ),
+  ];
+
+  void _checkAnswer(int selectedOptionIndex) {
+    if (selectedOptionIndex == _questions[_currentQuestionIndex].correctOptionIndex) {
+      // Correct answer
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Correct!'),
+            content: Text('Your answer is correct.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _nextQuestion();
+                },
+                child: Text('Next'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Incorrect answer
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Incorrect!'),
+            content: Text('Your answer is incorrect.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _nextQuestion();
+                },
+                child: Text('Next'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  void _nextQuestion() {
+    setState(() {
+      if (_currentQuestionIndex < _questions.length - 1) {
+        _currentQuestionIndex++;
+      } else {
+        // Quiz finished
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Quiz Completed'),
+              content: Text('You have completed the quiz.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _resetQuiz();
+                  },
+                  child: Text('Restart'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    });
+  }
+
+  void _resetQuiz() {
+    setState(() {
+      _currentQuestionIndex = 0;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Quiz App'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Question ${_currentQuestionIndex + 1}:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              _questions[_currentQuestionIndex].questionText,
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 20),
+            Column(
+              children: List.generate(
+                _questions[_currentQuestionIndex].options.length,
+                (index) => ElevatedButton(
+                  onPressed: () {
+                    _checkAnswer(index);
+                  },
+                  child: Text(_questions[_currentQuestionIndex].options[index]),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Quiz App',
+      home: QuizApp(),
+    );
+  }
+}
